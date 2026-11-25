@@ -26,6 +26,11 @@
       </div>
       <label class="f">Subjects</label>
       <div class="chips" id="chips"></div>
+      <label class="f">Question types</label>
+      <div class="chips" id="types">
+        <label class="chip"><input type="checkbox" value="mcq" checked> Multiple choice <span class="small" id="nMcq"></span></label>
+        <label class="chip"><input type="checkbox" value="fill" checked> Fill-in <span class="small" id="nFill"></span></label>
+      </div>
       <div class="row3">
         <div><label class="f" for="count">Questions</label><select id="count"><option>10</option><option>20</option><option selected>40</option><option>60</option><option value="0">All</option></select></div>
         <div id="timeBox"><label class="f" for="mins">Time (minutes)</label><input type="number" id="mins" min="1" max="300" value="60"></div>
@@ -33,7 +38,7 @@
       </div>
       <button class="pri" type="submit" style="width:100%">Start test</button>
       <p class="small" id="cfgMsg" role="status"></p>
-      <p class="small">Questions are unofficial revision questions written for this practice, at undergraduate entrance level. The real exam's format, length and difficulty may differ. Answer choices are shuffled every attempt.</p>
+      <p class="small">Questions are unofficial revision questions written for this practice, at undergraduate entrance level. The real exam's format, length and difficulty may differ. Answer choices are shuffled every attempt. Fill-in questions take a typed answer: a number, a fraction or a short expression.</p>
     </form>
     <aside>
       <h2>Your attempts</h2>
@@ -56,6 +61,14 @@
       <p class="qn" id="qNum"></p>
       <p class="qt" id="qText"></p>
       <div class="opts" id="opts" role="radiogroup" aria-labelledby="qText"></div>
+      <div class="fill" id="fill" hidden>
+        <label class="f" for="fillIn">Your answer</label>
+        <div class="fillrow">
+          <input id="fillIn" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button class="pri" id="fillCheck" type="button">Check answer</button>
+        </div>
+        <p class="small">Type a number, a fraction like 1/6, or an expression like 2pi/3, sqrt(3) or e^3. Decimals to 3 significant figures count.</p>
+      </div>
       <div class="fb" id="fb" hidden></div>
       <div class="nav">
         <button id="prev">← Previous</button>
@@ -69,7 +82,7 @@
       <b id="progress"></b>
       <div class="bub" id="bub"></div>
       <div class="legend" id="legend"></div>
-      <p class="keys"><kbd>A</kbd>–<kbd>D</kbd> answer · <kbd>←</kbd> <kbd>→</kbd> move · <kbd>F</kbd> flag</p>
+      <p class="keys"><kbd>A</kbd>–<kbd>D</kbd> answer · <kbd>←</kbd> <kbd>→</kbd> move · <kbd>F</kbd> flag · <kbd>Enter</kbd> check a typed answer</p>
     </aside>
   </div></div>
 </section>

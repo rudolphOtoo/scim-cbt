@@ -29,6 +29,7 @@ if (!Array.isArray(Q) || Q.length === 0) {
 }
 
 const errors = [];
+let fills = 0; // number of fill-in questions
 const seenText = new Map(); // normalised question text -> first question number
 const isText = (v) => typeof v === "string" && v.trim() !== "";
 const norm = (s) => s.trim().replace(/\s+/g, " ").toLowerCase();
@@ -39,7 +40,8 @@ Q.forEach((entry, i) => {
 
   if (!Array.isArray(entry) || entry.length !== 5) {
     fail(
-      `expected 5 fields [subject, question, options, correctIndex, explanation], got ` +
+      `expected 5 fields [subject, question, options, correctIndex, explanation] or ` +
+        `[subject, question, "fill", [answers], explanation], got ` +
         (Array.isArray(entry) ? `${entry.length}` : typeof entry),
     );
     return;
@@ -60,19 +62,33 @@ Q.forEach((entry, i) => {
     else seenText.set(key, i + 1);
   }
 
-  if (!Array.isArray(options) || options.length !== 4) {
-    failQ(`expected exactly 4 options, got ${Array.isArray(options) ? options.length : typeof options}`);
+  if (options === "fill") {
+    // Fill-in: the 4th field is a non-empty list of accepted answers.
+    fills++;
+    if (!Array.isArray(correct) || correct.length === 0) {
+      failQ(`fill-in answers must be a non-empty array of strings, got ${JSON.stringify(correct)}`);
+    } else {
+      correct.forEach((a, k) => {
+        if (!isText(a)) failQ(`fill-in answer ${k + 1} is empty or not a string`);
+      });
+    }
   } else {
-    options.forEach((o, k) => {
-      if (!isText(o)) failQ(`option ${"ABCD"[k]} is empty or not a string`);
-    });
-    const normed = options.filter(isText).map(norm);
-    const dupes = normed.filter((o, k) => normed.indexOf(o) !== k);
-    if (dupes.length) failQ(`duplicate options: ${[...new Set(dupes)].map((d) => JSON.stringify(d)).join(", ")}`);
-  }
+    if (!Array.isArray(options) || options.length !== 4) {
+      failQ(
+        `expected exactly 4 options (or "fill"), got ${Array.isArray(options) ? options.length : JSON.stringify(options)}`,
+      );
+    } else {
+      options.forEach((o, k) => {
+        if (!isText(o)) failQ(`option ${"ABCD"[k]} is empty or not a string`);
+      });
+      const normed = options.filter(isText).map(norm);
+      const dupes = normed.filter((o, k) => normed.indexOf(o) !== k);
+      if (dupes.length) failQ(`duplicate options: ${[...new Set(dupes)].map((d) => JSON.stringify(d)).join(", ")}`);
+    }
 
-  if (!Number.isInteger(correct) || correct < 0 || correct > 3) {
-    failQ(`correct index must be an integer 0–3, got ${JSON.stringify(correct)}`);
+    if (!Number.isInteger(correct) || correct < 0 || correct > 3) {
+      failQ(`correct index must be an integer 0–3, got ${JSON.stringify(correct)}`);
+    }
   }
 
   if (!isText(explanation)) failQ("explanation is empty");
@@ -84,7 +100,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`OK: ${Q.length} questions passed all checks.\n`);
+console.log(`OK: ${Q.length} questions passed all checks (${Q.length - fills} multiple choice, ${fills} fill-in).\n`);
 for (const s of SUBJECTS) {
   const n = Q.filter((q) => q[0] === s).length;
   console.log(`  ${s.padEnd(24)}${String(n).padStart(3)}`);

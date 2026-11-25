@@ -31,8 +31,9 @@
     },
   };
   // T is the test in progress (null when none); it is saved to localStorage as "scim-cur" so it can be resumed.
-  //   T.items[i] = { q: index into Q, p: display order of options (p[k] = original option index shown at letter k),
-  //                  a: chosen original option index or null, f: flagged, done: answer locked (practice mode) }
+  //   T.items[i] = { q: index into Q, p: display order of options (p[k] = original option index shown at letter k;
+  //                  null for fill-in), a: chosen original option index, or typed text for fill-in, or null,
+  //                  f: flagged, done: answer locked (practice mode) }
   //   T.end is the mock deadline as a timestamp, so the countdown survives reloads.
   let T = null,
     timerId = null,
@@ -50,6 +51,56 @@
     scrollTo(0, 0);
   };
 
+  // ----- Fill-in questions: entry is [subject, question, "fill", [accepted answers], explanation] -----
+  const isFill = (q) => q[2] === "fill";
+  // Lower-case, unify minus signs, drop spaces, a trailing full stop and a leading "x =" style prefix.
+  const normAns = (s) =>
+    String(s)
+      .toLowerCase()
+      .replace(/[−–]/g, "-")
+      .replace(/\s+/g, "")
+      .replace(/\.$/, "")
+      .replace(/^[a-zλ]=/, "");
+  // Value of a simple numeric answer such as 1/6, 0.25, 2pi/3, e^3, sqrt(3) or √3; NaN otherwise.
+  // Only digits, operators, brackets and the words pi, e and sqrt get through, so evaluating is safe.
+  function numVal(s) {
+    let x = normAns(s).replace(/π/g, "pi").replace(/√/g, "sqrt").replace(/×/g, "*");
+    if (!x || !/^[0-9.+\-*/()^a-z]*$/.test(x) || /[a-z]/.test(x.replace(/sqrt|pi|e/g, ""))) return NaN;
+    x = x
+      .replace(/sqrt(\d+(?:\.\d+)?)/g, "sqrt($1)")
+      .replace(/sqrt/g, "S")
+      .replace(/pi/g, "P")
+      .replace(/e/g, "E")
+      .replace(/([0-9)PE])(?=[SPE(])/g, "$1*") // implicit multiplication: 2pi, 3(…)
+      .replace(/\^/g, "**")
+      .replace(/S/g, "Math.sqrt")
+      .replace(/P/g, "Math.PI")
+      .replace(/E/g, "Math.E");
+    try {
+      const v = Function(`"use strict";return (${x})`)();
+      return typeof v === "number" && isFinite(v) ? v : NaN;
+    } catch (e) {
+      return NaN;
+    }
+  }
+  // Is test item x answered correctly? Fill-ins match as text, or by value to within 0.5%.
+  function isRight(x) {
+    const q = Q[x.q];
+    if (!isFill(q)) return x.a === q[3];
+    if (x.a === null || x.a === "") return false;
+    const a = normAns(x.a),
+      v = numVal(x.a);
+    return q[3].some((k) => {
+      if (normAns(k) === a) return true;
+      const t = numVal(k);
+      return !isNaN(v) && !isNaN(t) && Math.abs(v - t) <= 1e-9 + 5e-3 * Math.abs(t);
+    });
+  }
+  const answerText = (x) => (isFill(Q[x.q]) ? x.a : Q[x.q][2][x.a]);
+  const correctText = (q) => (isFill(q) ? q[3][0] : q[2][q[3]]);
+
+  $("nMcq").textContent = Q.filter((q) => !isFill(q)).length;
+  $("nFill").textContent = Q.filter(isFill).length;
   $("chips").innerHTML = SUBJ.map(
     (s) =>
       `<label class="chip"><input type="checkbox" value="${s}" checked> ${s} <span class="small">${Q.filter((q) => q[0] === s).length}</span></label>`,
@@ -64,7 +115,13 @@
   function build(ids, mode, mins) {
     T = {
       mode,
-      items: ids.map((i) => ({ q: i, p: shuffle([0, 1, 2, 3]), a: null, f: false, done: false })),
+      items: ids.map((i) => ({
+        q: i,
+        p: isFill(Q[i]) ? null : shuffle([0, 1, 2, 3]),
+        a: null,
+        f: false,
+        done: false,
+      })),
       cur: 0,
       end: mode === "mock" ? Date.now() + mins * 60000 : null,
       start: Date.now(),
@@ -80,11 +137,17 @@
       $("cfgMsg").textContent = "Pick at least one subject.";
       return;
     }
+    const types = [...document.querySelectorAll("#types input:checked")].map((i) => i.value);
+    if (!types.length) {
+      $("cfgMsg").textContent = "Pick at least one question type.";
+      return;
+    }
+    const typeOk = (q) => types.includes(isFill(q) ? "fill" : "mcq");
     $("cfgMsg").textContent = "";
     const mode = document.querySelector("[name=mode]:checked").value;
     let n = +$("count").value;
     // Balanced pick: take one question from each chosen subject in turn until n are picked.
-    const pools = subs.map((s) => shuffle(Q.map((q, i) => i).filter((i) => Q[i][0] === s)));
+    const pools = subs.map((s) => shuffle(Q.map((q, i) => i).filter((i) => Q[i][0] === s && typeOk(Q[i]))));
     const total = pools.reduce((t, p) => t + p.length, 0);
     if (!n || n > total) n = total;
     const ids = [];
@@ -124,7 +187,7 @@
       c.classList.toggle("low", left < 300);
       if (left <= 0) finish();
     } else {
-      const ok = T.items.filter((it) => it.done && it.a === Q[it.q][3]).length,
+      const ok = T.items.filter((it) => it.done && isRight(it)).length,
         done = T.items.filter((it) => it.done).length;
       c.textContent = `${ok} / ${done} correct`;
     }
@@ -140,24 +203,41 @@
     $("qSubj").textContent = q[0];
     $("qNum").textContent = `Question ${T.cur + 1} of ${n}`;
     $("qText").textContent = q[1];
-    const reveal = T.mode === "practice" && it.done;
-    $("opts").innerHTML = it.p
-      .map((o, k) => {
-        let c = "";
-        if (reveal) {
-          if (o === q[3]) c = "ok";
-          else if (o === it.a) c = "bad";
-        } else if (o === it.a) c = "sel";
-        return `<button class="opt ${c}" role="radio" aria-checked="${o === it.a}" data-o="${o}" ${reveal ? "disabled" : ""}><span class="b">${L[k]}</span><span></span></button>`;
-      })
-      .join("");
-    // Option text goes in via textContent so question data is never parsed as HTML.
-    [...$("opts").children].forEach((b, k) => (b.lastChild.textContent = q[2][it.p[k]]));
+    const reveal = T.mode === "practice" && it.done,
+      fill = isFill(q);
+    $("opts").hidden = fill;
+    $("fill").hidden = !fill;
+    $("fill").className = "fill" + (reveal ? (isRight(it) ? " ok" : " bad") : "");
+    if (fill) {
+      $("opts").innerHTML = "";
+      $("fillIn").value = it.a ?? "";
+      $("fillIn").disabled = reveal;
+      $("fillCheck").hidden = T.mode !== "practice";
+      $("fillCheck").disabled = reveal;
+    } else {
+      // Leave the hidden text box so the A–D keyboard shortcuts work again.
+      if (document.activeElement === $("fillIn")) $("fillIn").blur();
+      $("opts").innerHTML = it.p
+        .map((o, k) => {
+          let c = "";
+          if (reveal) {
+            if (o === q[3]) c = "ok";
+            else if (o === it.a) c = "bad";
+          } else if (o === it.a) c = "sel";
+          return `<button class="opt ${c}" role="radio" aria-checked="${o === it.a}" data-o="${o}" ${reveal ? "disabled" : ""}><span class="b">${L[k]}</span><span></span></button>`;
+        })
+        .join("");
+      // Option text goes in via textContent so question data is never parsed as HTML.
+      [...$("opts").children].forEach((b, k) => (b.lastChild.textContent = q[2][it.p[k]]));
+    }
     const fb = $("fb");
     fb.hidden = !reveal;
     if (reveal) {
-      const ok = it.a === q[3];
-      fb.innerHTML = `<b class="${ok ? "ok" : "bad"}">${ok ? "Correct." : "Not quite. The answer is " + L[it.p.indexOf(q[3])] + "."}</b> <span></span>`;
+      const ok = isRight(it);
+      fb.innerHTML = `<b class="${ok ? "ok" : "bad"}"></b> <span></span>`;
+      fb.firstChild.textContent = ok
+        ? "Correct."
+        : `Not quite. The answer is ${fill ? q[3][0] : L[it.p.indexOf(q[3])]}.`;
       fb.lastChild.textContent = q[4];
     }
     $("prev").disabled = T.cur === 0;
@@ -165,12 +245,17 @@
     $("flag").classList.toggle("flagged", it.f);
     $("flag").textContent = it.f ? "Flagged" : "Flag for review";
     $("reset").disabled = !it.done && it.a === null;
+    drawSheet();
+  }
+  // Progress line and bubble sheet. Separate from render() so typing an answer doesn't redraw the input.
+  function drawSheet() {
+    const n = T.items.length;
     const answered = T.items.filter((x) => x.a !== null).length;
     $("progress").textContent = `${answered} of ${n} answered`;
     $("bub").innerHTML = T.items
       .map((x, i) => {
         let c = "";
-        if (x.a !== null) c = T.mode === "practice" && x.done && x.a !== Q[x.q][3] ? "w" : "a";
+        if (x.a !== null) c = T.mode === "practice" && x.done && !isRight(x) ? "w" : "a";
         return `<button class="${c} ${x.f ? "fl" : ""} ${i === T.cur ? "cur" : ""}" data-i="${i}" aria-label="Question ${i + 1}">${i + 1}</button>`;
       })
       .join("");
@@ -194,6 +279,29 @@
   $("opts").addEventListener("click", (e) => {
     const b = e.target.closest(".opt");
     if (b && !b.disabled) choose(+b.dataset.o);
+  });
+  // Mock: a typed answer is saved as you type. Practice: "Check answer" (or Enter) locks it in.
+  $("fillIn").addEventListener("input", () => {
+    if (T.mode !== "mock") return;
+    T.items[T.cur].a = $("fillIn").value.trim() || null;
+    save();
+    drawSheet();
+  });
+  function checkFill() {
+    const it = T.items[T.cur],
+      v = $("fillIn").value.trim();
+    if (!v || it.done) return;
+    it.a = v;
+    it.done = true;
+    save();
+    render();
+  }
+  $("fillCheck").onclick = checkFill;
+  $("fillIn").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (T.mode === "practice") checkFill();
+    else go(T.cur + 1);
   });
   $("bub").addEventListener("click", (e) => {
     const b = e.target.closest("button");
@@ -239,7 +347,7 @@
     if ($("exam").hidden || e.ctrlKey || e.metaKey || e.altKey || e.target.matches("input,select"))
       return;
     const k = e.key.toUpperCase();
-    if (L.includes(k) && k.length === 1) {
+    if (L.includes(k) && k.length === 1 && !isFill(Q[T.items[T.cur].q])) {
       choose(T.items[T.cur].p[L.indexOf(k)]);
       e.preventDefault();
     } else if (e.key === "ArrowRight") go(T.cur + 1);
@@ -254,7 +362,7 @@
     const R = T;
     T = null;
     store.del("scim-cur");
-    const ok = R.items.filter((x) => x.a === Q[x.q][3]).length,
+    const ok = R.items.filter(isRight).length,
       n = R.items.length,
       pct = Math.round((100 * ok) / n);
     const used = Math.round(((R.end ? Math.min(Date.now(), R.end) : Date.now()) - R.start) / 1000);
@@ -267,7 +375,7 @@
       `${ok} of ${n} correct · ${R.items.filter((x) => x.a === null).length} unanswered · ${fmt(used)} used`;
     const by = SUBJ.map((s) => {
       const xs = R.items.filter((x) => Q[x.q][0] === s);
-      return { s, n: xs.length, ok: xs.filter((x) => x.a === Q[x.q][3]).length };
+      return { s, n: xs.length, ok: xs.filter(isRight).length };
     }).filter((b) => b.n);
     $("rSubj").innerHTML = by
       .map(
@@ -286,12 +394,12 @@
       w.ok === w.n
         ? "Everything correct in this test. Try a longer mock or another subject mix."
         : `${w.s}: ${w.ok} of ${w.n} correct. Revise this topic first, then retry your wrong answers.`;
-    const wrong = R.items.filter((x) => x.a !== Q[x.q][3]).map((x) => x.q);
+    const wrong = R.items.filter((x) => !isRight(x)).map((x) => x.q);
     $("retryWrong").disabled = !wrong.length;
     // Unanswered questions count as wrong, so they are retried too.
     $("retryWrong").onclick = () => build(shuffle(wrong.slice()), "practice", 0);
     filter = "all";
-    R.items.forEach((x) => (x.ok = x.a === Q[x.q][3]));
+    R.items.forEach((x) => (x.ok = isRight(x)));
     last = R;
     drawReview();
     show("result");
@@ -327,8 +435,8 @@
       const y = el.querySelector(".y");
       y.classList.add(x.ok ? "ok" : "bad");
       y.textContent =
-        x.a === null ? "Not answered" : `Your answer: ${q[2][x.a]}${x.ok ? " ✓" : " ✗"}`;
-      el.querySelector(".c").textContent = x.ok ? "" : `Correct answer: ${q[2][q[3]]}`;
+        x.a === null ? "Not answered" : `Your answer: ${answerText(x)}${x.ok ? " ✓" : " ✗"}`;
+      el.querySelector(".c").textContent = x.ok ? "" : `Correct answer: ${correctText(q)}`;
       el.querySelector(".e").textContent = q[4];
     });
   }

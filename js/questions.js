@@ -1,7 +1,11 @@
-// Question bank. Each entry is:
-//   [subject, question, [option A, B, C, D], correctIndex (0-3), explanation]
+// Question bank. Two kinds of entry:
+//   Multiple choice: [subject, question, [option A, B, C, D], correctIndex (0-3), explanation]
+//   Fill-in:         [subject, question, "fill", [accepted answers], explanation]
 // Subjects must be one of the five listed in SUBJ in js/app.js.
-// The option order is shuffled at run time, so put the correct option anywhere.
+// Multiple-choice options are shuffled at run time, so put the correct option anywhere.
+// Fill-in answers are matched ignoring case and spaces. Numeric answers are also matched by
+// value (to within 0.5%), so "1/6", "0.1667" and "0.167" all count. The first accepted answer
+// is the one shown as correct.
 const Q = [
 // ---------- ALGEBRA ----------
 ["Algebra","Find det(A) for A = [[2, 1], [5, 3]].",["1","11","−1","7"],0,"det = (2)(3) − (1)(5) = 6 − 5 = 1."],
@@ -136,5 +140,37 @@ const Q = [
 ["Mathematical Analysis","In ℝ, the closure of ℚ is",["ℝ","ℚ","∅","ℤ"],0,"ℚ is dense: every real number is a limit of rationals. The interior of ℚ is empty."],
 ["Mathematical Analysis","Find Σₙ₌₀^∞ (1/2)ⁿ.",["2","1","1/2","∞"],0,"For a geometric series with |r| < 1 the sum is 1/(1 − r) = 1/(1/2) = 2."],
 ["Mathematical Analysis","The Monotone Convergence Theorem states that",["every bounded monotone sequence converges","every monotone sequence is bounded","every convergent sequence is monotone","every bounded sequence is monotone"],0,"An increasing sequence that is bounded above converges to its supremum."],
-["Mathematical Analysis","If f is Lipschitz on a set (|f(x) − f(y)| ≤ L|x − y|), then f is",["uniformly continuous","differentiable everywhere","constant","unbounded"],0,"Take δ = ε/L. The converse fails: √x on [0, 1] is uniformly continuous but not Lipschitz."]
+["Mathematical Analysis","If f is Lipschitz on a set (|f(x) − f(y)| ≤ L|x − y|), then f is",["uniformly continuous","differentiable everywhere","constant","unbounded"],0,"Take δ = ε/L. The converse fails: √x on [0, 1] is uniformly continuous but not Lipschitz."],
+// ---------- FILL-IN ----------
+["Algebra","Compute det(A) for A = [[1, 2, 0], [3, 1, 4], [0, 2, 1]].","fill",["-13"],"Expand along Row 1: 1·(1·1 − 4·2) − 2·(3·1 − 4·0) + 0 = −7 − 6 = −13."],
+["Algebra","For A = [[1, 2], [3, 4]], what is the trace of A²?","fill",["29"],"A² = [[7, 10], [15, 22]], so the trace is 7 + 22 = 29."],
+["Algebra","What is the larger eigenvalue of A = [[2, 1], [1, 2]]?","fill",["3"],"(2 − λ)² − 1 = 0 gives λ = 1 or 3."],
+["Algebra","For which value of k is the matrix [[k, 2], [3, 6]] singular?","fill",["1"],"det = 6k − 6 = 0 gives k = 1."],
+["Algebra","What is the order of the symmetric group S₄?","fill",["24"],"|Sₙ| = n!, and 4! = 24."],
+["Algebra","What is the dimension of the vector space of real 3 × 3 symmetric matrices?","fill",["6"],"A symmetric matrix is fixed by its diagonal (3 entries) and the entries above it (3), so the dimension is n(n + 1)/2 = 6."],
+["Calculus","Evaluate lim (x → 0) of tan(5x) / x.","fill",["5"],"tan(5x)/x = 5 · tan(5x)/(5x), and tan(u)/u → 1."],
+["Calculus","Evaluate ∫₀² (3x² + 1) dx.","fill",["10"],"[x³ + x] from 0 to 2 = 8 + 2 = 10."],
+["Calculus","For f(x) = x³ ln x, find f′(1).","fill",["1"],"f′(x) = 3x² ln x + x², so f′(1) = 0 + 1 = 1."],
+["Calculus","Evaluate ∫₀¹ 1 / (1 + x²) dx. (You may type pi.)","fill",["π/4","pi/4"],"[arctan x] from 0 to 1 = π/4 ≈ 0.785."],
+["Calculus","Evaluate lim (x → ∞) of (3x² + 1) / (x² − 2).","fill",["3"],"Divide the top and bottom by x²: (3 + 1/x²)/(1 − 2/x²) → 3."],
+["Calculus","For f(x, y) = x²y³, find ∂²f/∂x∂y at (1, 1).","fill",["6"],"fₓ = 2xy³, then f_xy = 6xy², which is 6 at (1, 1)."],
+["Differential Equations","Solve y′ = 2y with y(0) = 5. What is y(ln 2)?","fill",["20"],"y = 5e^(2x), so y(ln 2) = 5e^(2 ln 2) = 5 × 4 = 20."],
+["Differential Equations","y = C₁cos(kx) + C₂sin(kx) solves y″ + 9y = 0. What is k (k > 0)?","fill",["3"],"r² + 9 = 0 gives r = ±3i, so k = 3."],
+["Differential Equations","L{t³} = k / s⁴. What is k?","fill",["6"],"L{tⁿ} = n!/s^(n+1), and 3! = 6."],
+["Differential Equations","What is the order of the ODE y‴ + (y′)⁴ = sin x?","fill",["3"],"The highest derivative is y‴. The power 4 on y′ affects the degree, not the order."],
+["Differential Equations","Solve dy/dx = y/x with y(1) = 2. What is y(3)?","fill",["6"],"Separate the variables: ln y = ln x + C, so y = Cx. y(1) = 2 gives y = 2x, and y(3) = 6."],
+["Differential Equations","y″ − 4y′ + 4y = 0 has a repeated characteristic root r. What is r?","fill",["2"],"r² − 4r + 4 = (r − 2)² = 0, so the general solution is (C₁ + C₂x)e^(2x)."],
+["Numerical Analysis","Apply one Newton step to f(x) = x² − 3 starting from x₀ = 2. What is x₁?","fill",["1.75","7/4"],"x₁ = 2 − (4 − 3)/(2 · 2) = 2 − 0.25 = 1.75."],
+["Numerical Analysis","Apply bisection to f(x) = x² − 2 on [1, 2]. The first midpoint is x₁ = 1.5. What is the second midpoint x₂?","fill",["1.25","5/4"],"f(1.5) = 0.25 > 0 and f(1) < 0, so the root is in [1, 1.5]. Its midpoint is 1.25."],
+["Numerical Analysis","Estimate ∫₀¹ x² dx with the composite trapezoidal rule, h = 0.5.","fill",["0.375","3/8"],"T = (h/2)[f(0) + 2f(0.5) + f(1)] = 0.25 × (0 + 0.5 + 1) = 0.375. The exact value is 1/3."],
+["Numerical Analysis","Use Euler's method on y′ = x + y, y(0) = 1, with h = 0.1. What is the estimate of y(0.2)?","fill",["1.22"],"y₁ = 1 + 0.1(0 + 1) = 1.1. y₂ = 1.1 + 0.1(0.1 + 1.1) = 1.22."],
+["Numerical Analysis","Linear interpolation through (1, 2) and (3, 8): what is the value at x = 2?","fill",["5"],"The slope is (8 − 2)/(3 − 1) = 3, so p(2) = 2 + 3 × 1 = 5."],
+["Numerical Analysis","How many bisection iterations on [0, 2] guarantee an error ≤ 10⁻²?","fill",["8"],"Need 2/2ⁿ ≤ 0.01, so 2ⁿ ≥ 200. 2⁷ = 128 is too small and 2⁸ = 256 is enough, so n = 8."],
+["Numerical Analysis","Estimate ∫₀^π sin x dx with Simpson's 1/3 rule, h = π/2. (You may type pi.)","fill",["2π/3","2pi/3"],"S = (h/3)[f(0) + 4f(π/2) + f(π)] = (π/6)(0 + 4 + 0) = 2π/3 ≈ 2.094. The exact value is 2."],
+["Mathematical Analysis","Find Σₙ₌₁^∞ 1 / (n(n + 1)).","fill",["1"],"Partial fractions: 1/n − 1/(n + 1). The sum telescopes to 1 − 1/(N + 1), which tends to 1."],
+["Mathematical Analysis","Evaluate lim (n → ∞) of (1 + 1/n)^(3n). (You may type e.)","fill",["e^3"],"(1 + 1/n)^(3n) = [(1 + 1/n)ⁿ]³ → e³ ≈ 20.09."],
+["Mathematical Analysis","What is the infimum of {1/n : n ∈ ℕ}?","fill",["0"],"1/n gets arbitrarily close to 0 but never reaches it, so inf = 0 and it is not attained."],
+["Mathematical Analysis","Evaluate lim (n → ∞) of (2n + 1) / (n + 3).","fill",["2"],"Divide the top and bottom by n: (2 + 1/n)/(1 + 3/n) → 2."],
+["Mathematical Analysis","Find Σₙ₌₀^∞ (2/3)ⁿ.","fill",["3"],"This is a geometric series: 1/(1 − 2/3) = 3."],
+["Mathematical Analysis","Apply the Mean Value Theorem to f(x) = x³ on [0, 3]. What is c? (You may type sqrt(3).)","fill",["√3","sqrt(3)"],"f′(c) = 3c² must equal (27 − 0)/3 = 9, so c² = 3 and c = √3 ≈ 1.732."]
 ];
