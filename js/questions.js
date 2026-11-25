@@ -89,7 +89,7 @@ const Q = [
 ["Differential Equations","For y′ = f(x, y), y(x₀) = y₀, the Picard existence–uniqueness theorem requires",["f and ∂f/∂y to be continuous near (x₀, y₀)","f to be a polynomial","f to be linear in y","only that f is bounded"],0,"Continuity of f gives existence. Continuity of ∂f/∂y (Lipschitz in y) also gives uniqueness."],
 
 // ---------- NUMERICAL ANALYSIS ----------
-["Numerical Analysis","How many bisection iterations on [0, 1] guarantee an error ≤ 10⁻³?",["10","9","3","1000"],0,"The error after n steps is at most (b − a)/2ⁿ = 1/2ⁿ. 2ⁿ ≥ 1000 needs n ≥ 9.97, so n = 10."],
+["Numerical Analysis","How many bisection iterations on [0, 1] make the bracketing interval's width (b − a)/2ⁿ ≤ 10⁻³?",["10","9","3","1000"],0,"The error after n steps is at most (b − a)/2ⁿ = 1/2ⁿ. 2ⁿ ≥ 1000 needs n ≥ 9.97, so n = 10."],
 ["Numerical Analysis","What is the Newton–Raphson iteration formula?",["xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ)","xₙ₊₁ = xₙ − f′(xₙ)/f(xₙ)","xₙ₊₁ = (xₙ + f(xₙ))/2","xₙ₊₁ = f(xₙ)"],0,"It comes from the tangent line at xₙ: set f(xₙ) + f′(xₙ)(x − xₙ) = 0 and solve for x."],
 ["Numerical Analysis","Near a simple root, what is the order of convergence of Newton's method?",["2 (quadratic)","1 (linear)","1.618","3"],0,"For a simple root, the error is squared at each step. For a multiple root it drops to linear."],
 ["Numerical Analysis","What is the order of convergence of the secant method?",["≈ 1.618","2","1","0.5"],0,"The order is the golden ratio (1 + √5)/2 ≈ 1.618. This is superlinear."],
@@ -165,7 +165,7 @@ const Q = [
 ["Numerical Analysis","Estimate ∫₀¹ x² dx with the composite trapezoidal rule, h = 0.5.","fill",["0.375","3/8"],"T = (h/2)[f(0) + 2f(0.5) + f(1)] = 0.25 × (0 + 0.5 + 1) = 0.375. The exact value is 1/3."],
 ["Numerical Analysis","Use Euler's method on y′ = x + y, y(0) = 1, with h = 0.1. What is the estimate of y(0.2)?","fill",["1.22"],"y₁ = 1 + 0.1(0 + 1) = 1.1. y₂ = 1.1 + 0.1(0.1 + 1.1) = 1.22."],
 ["Numerical Analysis","Linear interpolation through (1, 2) and (3, 8): what is the value at x = 2?","fill",["5"],"The slope is (8 − 2)/(3 − 1) = 3, so p(2) = 2 + 3 × 1 = 5."],
-["Numerical Analysis","How many bisection iterations on [0, 2] guarantee an error ≤ 10⁻²?","fill",["8"],"Need 2/2ⁿ ≤ 0.01, so 2ⁿ ≥ 200. 2⁷ = 128 is too small and 2⁸ = 256 is enough, so n = 8."],
+["Numerical Analysis","How many bisection iterations on [0, 2] make the bracketing interval's width (b − a)/2ⁿ ≤ 10⁻²?","fill",["8"],"Need 2/2ⁿ ≤ 0.01, so 2ⁿ ≥ 200. 2⁷ = 128 is too small and 2⁸ = 256 is enough, so n = 8."],
 ["Numerical Analysis","Estimate ∫₀^π sin x dx with Simpson's 1/3 rule, h = π/2. (You may type pi.)","fill",["2π/3","2pi/3"],"S = (h/3)[f(0) + 4f(π/2) + f(π)] = (π/6)(0 + 4 + 0) = 2π/3 ≈ 2.094. The exact value is 2."],
 ["Mathematical Analysis","Find Σₙ₌₁^∞ 1 / (n(n + 1)).","fill",["1"],"Partial fractions: 1/n − 1/(n + 1). The sum telescopes to 1 − 1/(N + 1), which tends to 1."],
 ["Mathematical Analysis","Evaluate lim (n → ∞) of (1 + 1/n)^(3n). (You may type e.)","fill",["e^3"],"(1 + 1/n)^(3n) = [(1 + 1/n)ⁿ]³ → e³ ≈ 20.09."],
